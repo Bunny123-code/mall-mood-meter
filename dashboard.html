@@ -195,6 +195,25 @@
       <input type="password" id="password" placeholder="••••••••" autocomplete="current-password" />
     </div>
     <button class="auth-btn" id="login-btn" onclick="handleLogin()">Sign In</button>
+
+    <!-- Divider -->
+    <div style="margin: 20px 0 12px; border-top: 1px solid var(--border);"></div>
+
+    <!-- Google Sign-In -->
+    <button id="google-signin-btn" class="auth-btn" style="background-color:#db4437; margin-bottom:12px;">
+      Sign in with Google
+    </button>
+
+    <!-- Phone Sign-In Section -->
+    <div id="phone-signin-section" style="margin-top: 12px;">
+      <input type="tel" id="phone-number" placeholder="+92XXXXXXXXXX" style="width:100%; padding:10px; margin-bottom:8px; border-radius:10px; border:1.5px solid var(--border);" />
+      <button id="send-code-btn" class="auth-btn" style="background-color:#4f46e5;">Send Code</button>
+      <div id="phone-verification" style="display:none; margin-top:12px;">
+        <input type="text" id="verification-code" placeholder="6-digit code" style="width:100%; padding:10px; margin-bottom:8px; border-radius:10px; border:1.5px solid var(--border);" />
+        <button id="verify-code-btn" class="auth-btn">Verify & Sign In</button>
+      </div>
+      <div id="recaptcha-container"></div>
+    </div>
   </div>
 </div>
 
@@ -267,7 +286,7 @@
 <!-- Firebase 10 Modular SDK -->
 <script type="module">
   import { initializeApp }  from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged }
+  import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, GoogleAuthProvider, signInWithPopup, RecaptchaVerifier, signInWithPhoneNumber }
     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
   import { getFirestore, collection, query, where, orderBy, limit, getDocs, doc, getDoc, Timestamp }
     from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
@@ -299,6 +318,75 @@ const firebaseConfig = {
   window.handleLogin  = handleLogin;
   window.handleLogout = handleLogout;
   window.setRange     = setRange;
+
+  // ---------- Google Sign-In ----------
+  window.handleGoogleSignIn = async function() {
+    const provider = new GoogleAuthProvider();
+    try {
+      await signInWithPopup(auth, provider);
+      // onAuthStateChanged will redirect automatically
+    } catch (err) {
+      console.error(err);
+      showAuthError('Google sign-in failed: ' + err.message);
+    }
+  };
+
+  // ---------- Phone Sign-In ----------
+  let recaptchaVerifier = null;
+  let confirmationResult = null;
+
+  function initRecaptcha() {
+    if (!recaptchaVerifier) {
+      recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+        size: 'invisible',
+        callback: () => { /* solved automatically */ }
+      });
+    }
+  }
+
+  window.sendPhoneCode = async function() {
+    const phone = document.getElementById('phone-number').value.trim();
+    if (!phone) {
+      showAuthError('Please enter phone number with country code (e.g., +923001234567)');
+      return;
+    }
+    initRecaptcha();
+    const btn = document.getElementById('send-code-btn');
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+    try {
+      confirmationResult = await signInWithPhoneNumber(auth, phone, recaptchaVerifier);
+      document.getElementById('phone-verification').style.display = 'block';
+      showAuthError(''); // clear error
+    } catch (err) {
+      console.error(err);
+      showAuthError('Failed to send code: ' + err.message);
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Send Code';
+    }
+  };
+
+  window.verifyPhoneCode = async function() {
+    const code = document.getElementById('verification-code').value.trim();
+    if (!code) {
+      showAuthError('Please enter the 6-digit code');
+      return;
+    }
+    const btn = document.getElementById('verify-code-btn');
+    btn.disabled = true;
+    btn.textContent = 'Verifying...';
+    try {
+      await confirmationResult.confirm(code);
+      // onAuthStateChanged will handle login
+    } catch (err) {
+      console.error(err);
+      showAuthError('Invalid or expired code');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Verify & Sign In';
+    }
+  };
 
   // ── Auth state ──
   onAuthStateChanged(auth, async user => {
@@ -561,6 +649,10 @@ const firebaseConfig = {
   document.getElementById('password').addEventListener('keydown', e => {
     if (e.key === 'Enter') handleLogin();
   });
+  // Attach new auth listeners
+  document.getElementById('google-signin-btn').addEventListener('click', window.handleGoogleSignIn);
+  document.getElementById('send-code-btn').addEventListener('click', window.sendPhoneCode);
+  document.getElementById('verify-code-btn').addEventListener('click', window.verifyPhoneCode);
 </script>
 </body>
 </html>
