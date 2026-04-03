@@ -240,12 +240,11 @@
     <button class="submit-btn" id="submit-btn" disabled>Submit Feedback</button>
   </div>
 
-  <!-- Thank you view -->
-  <div id="thankyou-view" class="thankyou">
+  <!-- Thank you view (permanent after submission) -->
+  <div id="thankyou-view" class="thankyou" style="display: none;">
     <div class="big-emoji" id="ty-emoji">😊</div>
     <h2>Thank you!</h2>
     <p>Your feedback helps us improve your experience.</p>
-    <div class="progress-bar"><div class="progress-bar-fill" id="progress-fill"></div></div>
   </div>
 </div>
 
@@ -298,8 +297,24 @@
     errorMsgDiv.style.display = 'none';
   }
 
+  // Check if this device already submitted for this store
+  function hasAlreadySubmitted() {
+    const key = `submitted_${storeId}`;
+    return localStorage.getItem(key) === 'true';
+  }
+
+  // Mark as submitted
+  function markSubmitted() {
+    const key = `submitted_${storeId}`;
+    localStorage.setItem(key, 'true');
+  }
+
   // Mood selection
   function selectMood(mood) {
+    if (hasAlreadySubmitted()) {
+      showError('You have already submitted feedback for this store.');
+      return;
+    }
     selectedMood = mood;
     // Update UI
     const moodMap = { happy: btnHappy, neutral: btnNeutral, unhappy: btnUnhappy };
@@ -323,6 +338,12 @@
 
   // Submit feedback
   async function submitFeedback() {
+    // Prevent if already submitted
+    if (hasAlreadySubmitted()) {
+      showError('You have already submitted feedback for this store.');
+      return;
+    }
+
     if (!selectedMood) {
       showError('Please select a mood first.');
       return;
@@ -342,31 +363,15 @@
         sessionId: Math.random().toString(36).slice(2) + Date.now().toString(36)
       });
 
-      // Show thank you
+      // Mark this device as submitted for this store
+      markSubmitted();
+
+      // Show thank you (permanent, no auto‑reset)
       const emojiMap = { happy: '😊', neutral: '😐', unhappy: '😠' };
       tyEmoji.textContent = emojiMap[selectedMood] || '😊';
       formView.style.display = 'none';
       thankyouView.style.display = 'flex';
-
-      // Reset progress bar animation
-      const fill = document.getElementById('progress-fill');
-      fill.style.animation = 'none';
-      fill.offsetHeight; // force reflow
-      fill.style.animation = '';
-
-      // Reset form after 4 seconds
-      setTimeout(() => {
-        selectedMood = null;
-        commentEl.value = '';
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = 'Submit Feedback';
-        // Reset mood button styles
-        [btnHappy, btnNeutral, btnUnhappy].forEach(btn => {
-          btn.classList.remove('selected-happy', 'selected-neutral', 'selected-unhappy');
-        });
-        formView.style.display = 'block';
-        thankyouView.style.display = 'none';
-      }, 4000);
+      // Disable submit button permanently (already hidden)
     } catch (err) {
       console.error('Submit error:', err);
       showError('Something went wrong. Please try again.');
@@ -386,6 +391,14 @@
 
     // Show store ID immediately while loading
     storeLabel.textContent = storeId;
+
+    // If already submitted, immediately show thank you
+    if (hasAlreadySubmitted()) {
+      formView.style.display = 'none';
+      thankyouView.style.display = 'flex';
+      tyEmoji.textContent = '😊';
+      return;
+    }
 
     try {
       const storeRef = doc(db, 'stores', storeId);
