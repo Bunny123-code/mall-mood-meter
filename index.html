@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>How Was Your Visit?</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -77,7 +77,6 @@
       margin-bottom: 28px;
     }
 
-    /* ── Mood buttons ── */
     .mood-grid {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
@@ -96,7 +95,6 @@
       background: #fff;
       cursor: pointer;
       transition: all .18s ease;
-      -webkit-tap-highlight-color: transparent;
     }
 
     .mood-btn:hover  { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,.1); }
@@ -113,9 +111,7 @@
     .mood-btn.selected-neutral  .label { color: var(--neutral); }
     .mood-btn.selected-unhappy  .label { color: var(--unhappy); }
 
-    /* ── Comment ── */
     .comment-wrap { margin-bottom: 22px; text-align: left; }
-
     .comment-wrap label {
       display: block;
       font-size: 13px;
@@ -123,7 +119,6 @@
       color: var(--text);
       margin-bottom: 7px;
     }
-
     .comment-wrap textarea {
       width: 100%;
       border: 1.5px solid var(--border);
@@ -131,16 +126,12 @@
       padding: 11px 13px;
       font-size: 14px;
       font-family: inherit;
-      color: var(--text);
       resize: none;
       height: 80px;
-      transition: border-color .18s;
       outline: none;
     }
-
     .comment-wrap textarea:focus { border-color: var(--primary); }
 
-    /* ── Submit ── */
     .submit-btn {
       width: 100%;
       padding: 15px;
@@ -151,15 +142,11 @@
       font-size: 15px;
       font-weight: 700;
       cursor: pointer;
-      transition: background .18s, opacity .18s, transform .1s;
-      letter-spacing: .02em;
+      transition: background .18s;
     }
-
     .submit-btn:hover:not(:disabled)  { background: #4338ca; }
-    .submit-btn:active:not(:disabled) { transform: scale(.98); }
     .submit-btn:disabled { opacity: .55; cursor: not-allowed; }
 
-    /* ── Error ── */
     .error-msg {
       display: none;
       background: #fef2f2;
@@ -168,11 +155,9 @@
       padding: 11px 14px;
       color: var(--unhappy);
       font-size: 13px;
-      font-weight: 500;
       margin-bottom: 16px;
     }
 
-    /* ── Thank-you state ── */
     .thankyou {
       display: none;
       flex-direction: column;
@@ -180,9 +165,8 @@
       gap: 12px;
       padding: 12px 0 4px;
     }
-
-    .thankyou .big-emoji { font-size: 64px; animation: pop .4s cubic-bezier(.36,.07,.19,.97); }
-    .thankyou h2 { font-size: 22px; font-weight: 700; color: var(--text); }
+    .thankyou .big-emoji { font-size: 64px; animation: pop .4s ease; }
+    .thankyou h2 { font-size: 22px; font-weight: 700; }
     .thankyou p  { font-size: 14px; color: var(--muted); }
 
     .progress-bar {
@@ -193,11 +177,9 @@
       margin-top: 16px;
       overflow: hidden;
     }
-
     .progress-bar-fill {
       height: 100%;
       background: var(--primary);
-      border-radius: 99px;
       width: 0%;
       animation: shrink 4s linear forwards;
     }
@@ -207,13 +189,11 @@
       70%  { transform: scale(1.15); }
       100% { transform: scale(1); opacity: 1; }
     }
-
     @keyframes shrink {
       from { width: 100%; }
       to   { width: 0%; }
     }
 
-    /* ── Loading spinner ── */
     .spinner {
       display: inline-block;
       width: 18px; height: 18px;
@@ -225,24 +205,11 @@
       margin-right: 6px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
-
-    .error-store {
-      min-height: 100dvh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      text-align: center;
-      padding: 20px;
-      font-size: 18px;
-    }
   </style>
 </head>
 <body>
-
-<div id="root-card" class="card">
-
-  <!-- Default / submission view -->
+<div class="card" id="root-card">
+  <!-- Form view -->
   <div id="form-view">
     <div class="mall-logo">🏪</div>
     <div class="store-name" id="store-label">Loading store…</div>
@@ -250,194 +217,198 @@
     <p class="subtitle">Tap an emoji to share your mood – it only takes a second!</p>
 
     <div class="mood-grid">
-      <button class="mood-btn" id="btn-happy"   onclick="selectMood('happy')"  aria-label="Happy">
+      <button class="mood-btn" id="btn-happy" data-mood="happy">
         <span class="emoji">😊</span>
         <span class="label">Happy</span>
       </button>
-      <button class="mood-btn" id="btn-neutral" onclick="selectMood('neutral')" aria-label="Neutral">
+      <button class="mood-btn" id="btn-neutral" data-mood="neutral">
         <span class="emoji">😐</span>
         <span class="label">Neutral</span>
       </button>
-      <button class="mood-btn" id="btn-unhappy" onclick="selectMood('unhappy')" aria-label="Unhappy">
+      <button class="mood-btn" id="btn-unhappy" data-mood="unhappy">
         <span class="emoji">😠</span>
         <span class="label">Unhappy</span>
       </button>
     </div>
 
     <div class="comment-wrap">
-      <label for="comment">Any comment? <span style="font-weight:400;color:var(--muted)">(optional)</span></label>
+      <label for="comment">Any comment? <span style="font-weight:400;">(optional)</span></label>
       <textarea id="comment" placeholder="Tell us more…" maxlength="300"></textarea>
     </div>
 
     <div class="error-msg" id="error-msg"></div>
-
-    <button class="submit-btn" id="submit-btn" onclick="submitMood()" disabled>
-      Submit Feedback
-    </button>
+    <button class="submit-btn" id="submit-btn" disabled>Submit Feedback</button>
   </div>
 
-  <!-- Thank-you view -->
+  <!-- Thank you view -->
   <div id="thankyou-view" class="thankyou">
     <div class="big-emoji" id="ty-emoji">😊</div>
     <h2>Thank you!</h2>
     <p>Your feedback helps us improve your experience.</p>
     <div class="progress-bar"><div class="progress-bar-fill" id="progress-fill"></div></div>
   </div>
-
 </div>
 
-<!-- Firebase 10 Modular SDK via CDN -->
+<!-- Firebase SDK -->
 <script type="module">
-  import { initializeApp }          from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-  import { getFirestore, collection, addDoc, serverTimestamp, doc, getDoc }
-    from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+  import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+  import { getFirestore, collection, addDoc, serverTimestamp, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 
-  /* ─────────────────────────────────────────────
-     🔧 REPLACE THIS BLOCK WITH YOUR FIREBASE CONFIG
-     (Firebase Console → Project Settings → Your Apps)
-  ───────────────────────────────────────────── */
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyA9kH3rpz8Zaf40lXd_SGhiKlkk2oiMCVo",
-  authDomain: "mall-mood-meter.firebaseapp.com",
-  projectId: "mall-mood-meter",
-  storageBucket: "mall-mood-meter.firebasestorage.app",
-  messagingSenderId: "261002684409",
-  appId: "1:261002684409:web:4b2151b76f38b76b333f28",
-  measurementId: "G-J9L41YFQML"
-};
-  /* ─────────────────────────────────────────── */
+  const firebaseConfig = {
+    apiKey: "AIzaSyA9kH3rpz8Zaf40lXd_SGhiKlkk2oiMCVo",
+    authDomain: "mall-mood-meter.firebaseapp.com",
+    projectId: "mall-mood-meter",
+    storageBucket: "mall-mood-meter.firebasestorage.app",
+    messagingSenderId: "261002684409",
+    appId: "1:261002684409:web:4b2151b76f38b76b333f28",
+    measurementId: "G-J9L41YFQML"
+  };
 
   const app = initializeApp(firebaseConfig);
-  const db  = getFirestore(app);
+  const db = getFirestore(app);
 
-  // ── Read storeId from URL ──
-  const params  = new URLSearchParams(window.location.search);
-  const storeId = (params.get('store') || '').trim();
+  // Get storeId from URL
+  const urlParams = new URLSearchParams(window.location.search);
+  const storeId = urlParams.get('store')?.trim();
 
   let selectedMood = null;
-  let storeName    = storeId;
+  let storeName = storeId || 'Store';
 
-  // Expose functions to global scope (needed for inline onclick)
-  window.selectMood  = selectMood;
-  window.submitMood  = submitMood;
+  // DOM elements
+  const storeLabel = document.getElementById('store-label');
+  const btnHappy = document.getElementById('btn-happy');
+  const btnNeutral = document.getElementById('btn-neutral');
+  const btnUnhappy = document.getElementById('btn-unhappy');
+  const commentEl = document.getElementById('comment');
+  const submitBtn = document.getElementById('submit-btn');
+  const errorMsgDiv = document.getElementById('error-msg');
+  const formView = document.getElementById('form-view');
+  const thankyouView = document.getElementById('thankyou-view');
+  const tyEmoji = document.getElementById('ty-emoji');
 
-  // ── Init ──
-  (async function init() {
-    if (!storeId) {
-      document.getElementById('root-card').remove();
-      document.body.innerHTML =
-        '<div class="error-store">⚠️ No store specified.<br>Please scan the correct QR code.</div>';
-      return;
-    }
+  // Helper: show error
+  function showError(msg) {
+    errorMsgDiv.textContent = msg;
+    errorMsgDiv.style.display = 'block';
+    setTimeout(() => { errorMsgDiv.style.display = 'none'; }, 4000);
+  }
 
-    // Attempt to fetch store name from Firestore
-    try {
-      const snap = await getDoc(doc(db, 'stores', storeId));
-      if (snap.exists()) {
-        storeName = snap.data().storeName || storeId;
-      }
-    } catch (_) { /* non-fatal – use storeId as fallback */ }
+  // Helper: hide error
+  function hideError() {
+    errorMsgDiv.style.display = 'none';
+  }
 
-    document.getElementById('store-label').textContent = storeName;
-  })();
-
-  // ── Mood selection ──
+  // Mood selection
   function selectMood(mood) {
     selectedMood = mood;
-    const btns = { happy: 'btn-happy', neutral: 'btn-neutral', unhappy: 'btn-unhappy' };
-    Object.entries(btns).forEach(([m, id]) => {
-      const el = document.getElementById(id);
-      el.className = 'mood-btn' + (m === mood ? ` selected-${m}` : '');
+    // Update UI
+    const moodMap = { happy: btnHappy, neutral: btnNeutral, unhappy: btnUnhappy };
+    Object.entries(moodMap).forEach(([m, btn]) => {
+      if (btn) {
+        if (m === mood) {
+          btn.classList.add(`selected-${m}`);
+        } else {
+          btn.classList.remove(`selected-happy`, `selected-neutral`, `selected-unhappy`);
+        }
+      }
     });
-    document.getElementById('submit-btn').disabled = false;
+    submitBtn.disabled = false;
     hideError();
   }
 
-  // ── Submit ──
-  async function submitMood() {
-    if (!selectedMood) { showError('Please select a mood first.'); return; }
+  // Attach event listeners to mood buttons
+  btnHappy.addEventListener('click', () => selectMood('happy'));
+  btnNeutral.addEventListener('click', () => selectMood('neutral'));
+  btnUnhappy.addEventListener('click', () => selectMood('unhappy'));
 
-    const comment   = (document.getElementById('comment').value || '').trim();
-    const submitBtn = document.getElementById('submit-btn');
-
-    // Spam guard – session-level (1 submission per 60s)
-    const lastSubmit = Number(sessionStorage.getItem('lastSubmit') || 0);
-    if (Date.now() - lastSubmit < 05_000) {
-      showError('Please wait a moment before submitting again. Thank you!');
+  // Submit feedback
+  async function submitFeedback() {
+    if (!selectedMood) {
+      showError('Please select a mood first.');
       return;
     }
+
+    const comment = commentEl.value.trim();
 
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<span class="spinner"></span>Submitting…';
 
     try {
       await addDoc(collection(db, 'moods'), {
-        storeId,
-        mood:      selectedMood,
-        comment:   comment || null,
+        storeId: storeId,
+        mood: selectedMood,
+        comment: comment || null,
         timestamp: serverTimestamp(),
-        // Anonymous session fingerprint (not personally identifiable)
-        sessionId: getSessionId()
+        sessionId: Math.random().toString(36).slice(2) + Date.now().toString(36)
       });
 
-      sessionStorage.setItem('lastSubmit', String(Date.now()));
-      showThankyou();
+      // Show thank you
+      const emojiMap = { happy: '😊', neutral: '😐', unhappy: '😠' };
+      tyEmoji.textContent = emojiMap[selectedMood] || '😊';
+      formView.style.display = 'none';
+      thankyouView.style.display = 'flex';
 
+      // Reset progress bar animation
+      const fill = document.getElementById('progress-fill');
+      fill.style.animation = 'none';
+      fill.offsetHeight; // force reflow
+      fill.style.animation = '';
+
+      // Reset form after 4 seconds
+      setTimeout(() => {
+        selectedMood = null;
+        commentEl.value = '';
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = 'Submit Feedback';
+        // Reset mood button styles
+        [btnHappy, btnNeutral, btnUnhappy].forEach(btn => {
+          btn.classList.remove('selected-happy', 'selected-neutral', 'selected-unhappy');
+        });
+        formView.style.display = 'block';
+        thankyouView.style.display = 'none';
+      }, 4000);
     } catch (err) {
-      console.error(err);
+      console.error('Submit error:', err);
       showError('Something went wrong. Please try again.');
       submitBtn.disabled = false;
       submitBtn.innerHTML = 'Submit Feedback';
     }
   }
 
-  // ── Thank-you display ──
-  function showThankyou() {
-    const emojiMap = { happy: '😊', neutral: '😐', unhappy: '😠' };
-    document.getElementById('ty-emoji').textContent = emojiMap[selectedMood] || '😊';
-    document.getElementById('form-view').style.display    = 'none';
-    document.getElementById('thankyou-view').style.display = 'flex';
+  submitBtn.addEventListener('click', submitFeedback);
 
-    // Restart progress bar animation
-    const fill = document.getElementById('progress-fill');
-    fill.style.animation = 'none';
-    fill.offsetHeight; // reflow
-    fill.style.animation = '';
-
-    // Auto-reset after 4 s
-    setTimeout(() => resetForm(), 4200);
-  }
-
-  function resetForm() {
-    selectedMood = null;
-    document.getElementById('comment').value   = '';
-    document.getElementById('submit-btn').disabled = true;
-    document.getElementById('submit-btn').innerHTML = 'Submit Feedback';
-    ['btn-happy','btn-neutral','btn-unhappy'].forEach(id =>
-      document.getElementById(id).className = 'mood-btn');
-    hideError();
-    document.getElementById('thankyou-view').style.display = 'none';
-    document.getElementById('form-view').style.display      = 'block';
-  }
-
-  function showError(msg) {
-    const el = document.getElementById('error-msg');
-    el.textContent    = msg;
-    el.style.display  = 'block';
-  }
-  function hideError() {
-    document.getElementById('error-msg').style.display = 'none';
-  }
-
-  // Lightweight anonymous session ID stored in sessionStorage
-  function getSessionId() {
-    let id = sessionStorage.getItem('mmSessionId');
-    if (!id) {
-      id = Math.random().toString(36).slice(2) + Date.now().toString(36);
-      sessionStorage.setItem('mmSessionId', id);
+  // Load store name from Firestore
+  async function loadStoreName() {
+    if (!storeId) {
+      storeLabel.textContent = 'Invalid Store';
+      return;
     }
-    return id;
+
+    // Show store ID immediately while loading
+    storeLabel.textContent = storeId;
+
+    try {
+      const storeRef = doc(db, 'stores', storeId);
+      const storeSnap = await getDoc(storeRef);
+      if (storeSnap.exists()) {
+        const data = storeSnap.data();
+        storeName = data.storeName || storeId;
+        storeLabel.textContent = storeName;
+      } else {
+        storeLabel.textContent = storeId;
+      }
+    } catch (err) {
+      console.error('Error loading store:', err);
+      storeLabel.textContent = storeId;
+    }
+  }
+
+  // Initialize
+  if (!storeId) {
+    storeLabel.textContent = 'Missing Store ID';
+    submitBtn.disabled = true;
+  } else {
+    loadStoreName();
   }
 </script>
 </body>
