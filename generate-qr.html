@@ -3,79 +3,111 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mall Mood Meter – QR Generator</title>
+  <title>Satisfaction Meter – QR Generator</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
-      --primary: #4f46e5; --primary-dark: #3730a3;
+      --primary: #4f46e5; --primary-dark: #3730a3; --primary-light: #eef2ff;
       --bg: #f1f5f9; --card: #fff; --text: #1e293b; --muted: #64748b; --border: #e2e8f0;
+      --radius: 16px;
     }
     body {
       min-height: 100dvh;
-      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      background: linear-gradient(135deg, #3730a3 0%, #4f46e5 50%, #7c3aed 100%);
       display: flex; align-items: center; justify-content: center;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       padding: 20px;
     }
     .card {
-      background: var(--card); border-radius: 20px;
-      width: 100%; max-width: 520px;
-      padding: 36px 30px;
-      box-shadow: 0 12px 40px rgba(0,0,0,.18);
+      background: var(--card); border-radius: 22px;
+      width: 100%; max-width: 540px;
+      padding: 40px 34px;
+      box-shadow: 0 20px 60px rgba(0,0,0,.22);
+      position: relative; overflow: hidden;
     }
-    .logo { font-size: 36px; margin-bottom: 12px; }
-    h1 { font-size: 22px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
-    .sub { font-size: 14px; color: var(--muted); margin-bottom: 28px; }
-    .form-group { margin-bottom: 14px; }
-    .form-group label { display: block; font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; margin-bottom: 6px; }
+    .card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+      background: linear-gradient(90deg, #4f46e5, #7c3aed, #a855f7);
+    }
+    .logo { font-size: 38px; margin-bottom: 14px; }
+    h1 { font-size: 23px; font-weight: 800; color: var(--text); margin-bottom: 5px; }
+    .sub { font-size: 14px; color: var(--muted); margin-bottom: 30px; line-height: 1.5; }
+
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing:.07em; margin-bottom: 6px; }
     .form-group input {
-      width: 100%; padding: 11px 13px; border: 1.5px solid var(--border);
-      border-radius: 10px; font-size: 14px; font-family: inherit;
-      outline: none; transition: border-color .18s;
+      width: 100%; padding: 12px 14px; border: 1.5px solid var(--border);
+      border-radius: 11px; font-size: 14px; font-family: inherit;
+      outline: none; transition: border-color .18s, box-shadow .18s;
     }
-    .form-group input:focus { border-color: var(--primary); }
+    .form-group input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79,70,229,.1); }
+
     .url-preview {
-      background: #f8fafc; border: 1px solid var(--border);
-      border-radius: 8px; padding: 10px 13px;
-      font-size: 12px; color: var(--muted); font-family: monospace;
-      word-break: break-all; margin-bottom: 20px;
+      background: var(--primary-light); border: 1px solid #c7d2fe;
+      border-radius: 10px; padding: 11px 14px;
+      font-size: 12px; color: var(--primary); font-family: monospace;
+      word-break: break-all; margin-bottom: 22px; font-weight: 600;
+      min-height: 42px;
     }
-    .btn {
-      width: 100%; padding: 13px; border: none; border-radius: 12px;
-      background: var(--primary); color: #fff; font-size: 15px; font-weight: 700;
-      cursor: pointer; transition: background .18s; margin-bottom: 12px;
-    }
-    .btn:hover:not(:disabled) { background: var(--primary-dark); }
-    .btn:disabled { opacity: .5; cursor: not-allowed; }
-    .btn-download { background: #16a34a; }
-    .btn-download:hover:not(:disabled) { background: #15803d; }
-    .qr-section { display: none; text-align: center; padding-top: 8px; }
-    .qr-wrapper {
-      display: inline-block; padding: 16px; background: #fff;
-      border: 2px solid var(--border); border-radius: 12px; margin-bottom: 16px;
-    }
-    .qr-wrapper canvas { display: block; }
-    .store-label { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
-    .store-url { font-size: 11px; color: var(--muted); word-break: break-all; margin-bottom: 18px; }
-    .size-row { display: flex; gap: 8px; justify-content: center; margin-bottom: 16px; flex-wrap: wrap; }
+
+    .size-row { display: flex; gap: 8px; justify-content: center; margin-bottom: 18px; flex-wrap: wrap; }
     .size-btn {
-      padding: 6px 14px; border: 1.5px solid var(--border); border-radius: 8px;
-      background: #fff; color: var(--text); font-size: 12px; font-weight: 600; cursor: pointer;
+      padding: 8px 16px; border: 1.5px solid var(--border); border-radius: 10px;
+      background: #fff; color: var(--text); font-size: 12px; font-weight: 700;
+      cursor: pointer; transition: all .18s;
     }
-    .size-btn.active { border-color: var(--primary); background: var(--primary); color: #fff; }
+    .size-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .size-btn.active {
+      border-color: var(--primary); background: var(--primary); color: #fff;
+      box-shadow: 0 3px 10px rgba(79,70,229,.28);
+    }
+
+    .btn {
+      width: 100%; padding: 14px; border: none; border-radius: 13px;
+      font-size: 15px; font-weight: 700; cursor: pointer;
+      transition: opacity .18s, transform .15s, box-shadow .18s;
+      margin-bottom: 12px;
+    }
+    .btn:hover:not(:disabled) { opacity: .9; transform: translateY(-1px); }
+    .btn:active:not(:disabled) { transform: scale(.98); }
+    .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+    .btn-generate {
+      background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+      color: #fff; box-shadow: 0 4px 14px rgba(79,70,229,.35);
+    }
+    .btn-download {
+      background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+      color: #fff; box-shadow: 0 4px 14px rgba(22,163,74,.3);
+    }
+
+    .qr-section { display: none; text-align: center; padding-top: 10px; }
+    .qr-wrapper {
+      display: inline-block; padding: 18px; background: #fff;
+      border: 2px solid var(--border); border-radius: 16px; margin-bottom: 18px;
+      box-shadow: 0 4px 20px rgba(0,0,0,.08);
+    }
+    .qr-wrapper canvas { display: block; border-radius: 4px; }
+    .store-label { font-size: 14px; font-weight: 800; margin-bottom: 5px; color: var(--text); }
+    .store-url { font-size: 11px; color: var(--muted); word-break: break-all; margin-bottom: 20px; font-family: monospace; }
+
     .print-card {
-      border: 2px dashed var(--border); border-radius: 12px; padding: 20px;
-      text-align: center; margin-top: 12px;
+      border: 2px dashed var(--border); border-radius: 14px; padding: 22px;
+      text-align: center; margin-top: 14px; background: #fafafa;
     }
+    .print-card strong { font-size: 14px; }
+    .print-card p { font-size: 13px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
     .print-btn {
       background: #fff; border: 1.5px solid var(--border); color: var(--text);
-      font-size: 12px; font-weight: 600; padding: 7px 16px; border-radius: 8px;
-      cursor: pointer; margin-top: 10px;
+      font-size: 13px; font-weight: 700; padding: 9px 20px; border-radius: 10px;
+      cursor: pointer; margin-top: 12px; transition: all .18s;
     }
+    .print-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+
     @media print {
       body { background: #fff; display: block; }
       .card { box-shadow: none; max-width: 100%; border-radius: 0; padding: 10mm; }
-      .form-section, .btn:not(.btn-download) { display: none !important; }
+      .form-section, .btn-generate { display: none !important; }
       .qr-section { display: block !important; }
     }
   </style>
@@ -84,7 +116,7 @@
 <div class="card">
   <div class="logo">📱</div>
   <h1>QR Code Generator</h1>
-  <p class="sub">Generate a scan-to-rate QR code for each store</p>
+  <p class="sub">Generate a scan-to-rate QR code for each store location.</p>
 
   <div class="form-section">
     <div class="form-group">
@@ -95,8 +127,8 @@
       <label>Store Name (for label)</label>
       <input type="text" id="store-name" placeholder="e.g. Al Madina Bakery" oninput="updatePreview()" />
     </div>
-    <!-- Base URL is hardcoded and hidden – replace YOUR-USERNAME and YOUR-REPO -->
-    <input type="hidden" id="base-url" value="https://bunny123-code.github.io/mall-mood-meter/index.html" />
+    <!-- Base URL: update YOUR-USERNAME to your GitHub username -->
+    <input type="hidden" id="base-url" value="https://YOUR-USERNAME.github.io/satisfaction-meter/index.html" />
 
     <div class="url-preview" id="url-preview">Enter a Store ID above to preview the URL…</div>
 
@@ -106,7 +138,7 @@
       <button class="size-btn" data-size="400" onclick="setSize(400)">Large (400px)</button>
     </div>
 
-    <button class="btn" id="gen-btn" onclick="generateQR()" disabled>Generate QR Code</button>
+    <button class="btn btn-generate" id="gen-btn" onclick="generateQR()" disabled>Generate QR Code</button>
   </div>
 
   <div class="qr-section" id="qr-section">
@@ -114,11 +146,11 @@
       <canvas id="qr-canvas"></canvas>
     </div>
     <div class="store-label" id="qr-store-name">Store Name</div>
-    <div class="store-url" id="qr-url-display">URL</div>
+    <div class="store-url"   id="qr-url-display">URL</div>
     <button class="btn btn-download" onclick="downloadQR()">⬇️ Download QR as PNG</button>
     <div class="print-card">
-      <strong>🖨️ Print this QR</strong>
-      <p>Place at checkout counter, entrance, or fitting room for customers to scan.</p>
+      <strong>🖨️ Print this QR Code</strong>
+      <p>Place at your checkout counter, store entrance, or fitting room so customers can scan and leave feedback.</p>
       <button class="print-btn" onclick="window.print()">🖨️ Print</button>
     </div>
   </div>
@@ -127,11 +159,10 @@
 <script>
   let qrSize = 300;
 
-  // Replace YOUR-USERNAME and YOUR-REPO in the hidden input above
   function updatePreview() {
     const storeId = document.getElementById('store-id').value.trim();
-    const base = document.getElementById('base-url').value.trim();
-    const btn = document.getElementById('gen-btn');
+    const base    = document.getElementById('base-url').value.trim();
+    const btn     = document.getElementById('gen-btn');
     if (storeId && base) {
       const url = `${base}?store=${encodeURIComponent(storeId)}`;
       document.getElementById('url-preview').textContent = url;
@@ -150,40 +181,36 @@
   }
 
   function generateQR() {
-    const storeId = document.getElementById('store-id').value.trim();
+    const storeId   = document.getElementById('store-id').value.trim();
     const storeName = document.getElementById('store-name').value.trim() || storeId;
-    const base = document.getElementById('base-url').value.trim();
+    const base      = document.getElementById('base-url').value.trim();
     if (!storeId || !base) return;
 
-    const url = `${base}?store=${encodeURIComponent(storeId)}`;
-    const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${qrSize}x${qrSize}&data=${encodeURIComponent(url)}`;
+    const url       = `${base}?store=${encodeURIComponent(storeId)}`;
+    const qrApiUrl  = `https://api.qrserver.com/v1/create-qr-code/?size=${qrSize}x${qrSize}&data=${encodeURIComponent(url)}`;
 
     const canvas = document.getElementById('qr-canvas');
-    const img = new Image();
-    img.crossOrigin = "Anonymous";
+    const img    = new Image();
+    img.crossOrigin = 'Anonymous';
     img.onload = () => {
-      canvas.width = qrSize;
+      canvas.width  = qrSize;
       canvas.height = qrSize;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, qrSize, qrSize);
+      canvas.getContext('2d').drawImage(img, 0, 0, qrSize, qrSize);
       document.getElementById('qr-store-name').textContent = storeName;
       document.getElementById('qr-url-display').textContent = url;
       document.getElementById('qr-section').style.display = 'block';
     };
-    img.onerror = (err) => {
-      console.error(err);
-      alert('QR generation failed. Check your internet connection or try again.');
-    };
+    img.onerror = () => alert('QR generation failed. Check your internet connection and try again.');
     img.src = qrApiUrl;
   }
 
   function downloadQR() {
-    const canvas = document.getElementById('qr-canvas');
+    const canvas    = document.getElementById('qr-canvas');
     const storeName = document.getElementById('store-name').value.trim() ||
                       document.getElementById('store-id').value.trim() || 'qrcode';
-    const link = document.createElement('a');
-    link.href = canvas.toDataURL('image/png');
-    link.download = `qr-${storeName.replace(/\s+/g, '_')}.png`;
+    const link      = document.createElement('a');
+    link.href       = canvas.toDataURL('image/png');
+    link.download   = `qr-${storeName.replace(/\s+/g,'_')}.png`;
     link.click();
   }
 </script>
