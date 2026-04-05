@@ -102,14 +102,23 @@
     }
     .logout-btn:hover { background: var(--primary-light); border-color: var(--primary); color: var(--primary); }
 
-    /* Install Button in header */
+    /* Install button - always visible by default (hidden only if PWA already installed) */
     #install-btn {
-      padding: 8px 16px; border: 1.5px solid var(--primary); border-radius: 9px;
-      background: var(--primary-light); color: var(--primary);
-      font-size: 13px; font-weight: 700; cursor: pointer;
-      transition: all .18s; display: none; white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border: 1.5px solid var(--primary);
+      border-radius: 9px;
+      background: var(--primary-light);
+      color: var(--primary);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all .18s;
+      white-space: nowrap;
     }
-    #install-btn:hover { background: var(--primary); color: #fff; }
+    #install-btn:hover { background: var(--primary); color: #fff; border-color: var(--primary); }
 
     main { max-width: 980px; margin: 0 auto; padding: 28px 18px 56px; }
 
@@ -581,45 +590,75 @@
     });
   }
 
-  // ── PWA Install ───────────────────────────────────────────
+  // ── PWA Install logic (always visible button, smart fallback) ──
   let deferredPrompt = null;
   const installBtn   = document.getElementById('install-btn');
   const iosBanner    = document.getElementById('ios-banner');
 
-  // Android / Chrome – capture the install prompt
+  // Helper: check if app is already installed (standalone mode)
+  function isPWAInstalled() {
+    return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  }
+
+  // Android / Chrome – capture install prompt
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
     deferredPrompt = e;
-    installBtn.style.display = 'block';
+    // Button is already visible, just store the prompt event
+    console.log('beforeinstallprompt captured');
   });
 
-  // Called by the install button
+  // Global install trigger called by button
   window.triggerInstall = async function() {
+    // If already installed as PWA, no need to show install options
+    if (isPWAInstalled()) {
+      // Optionally hide button and inform user
+      installBtn.style.display = 'none';
+      return;
+    }
+
+    // Case 1: we have the beforeinstallprompt event (Chrome/Edge/Samsung Internet)
     if (deferredPrompt) {
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
       console.log('Install outcome:', outcome);
       deferredPrompt = null;
-      installBtn.style.display = 'none';
-    } else {
-      // iOS Safari fallback
-      iosBanner.style.display = 'block';
+      // If user accepted, hide button after install
+      if (outcome === 'accepted') {
+        installBtn.style.display = 'none';
+      }
+      return;
     }
+
+    // Case 2: iOS Safari (no beforeinstallprompt, but we have the banner)
+    const isIOS = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
+    if (isIOS) {
+      iosBanner.style.display = 'block';
+      return;
+    }
+
+    // Case 3: Other desktop browsers or browsers that don't support beforeinstallprompt
+    // Provide a helpful instruction
+    alert('📲 To install this app as a PWA:\n\n• On Chrome/Edge: Click the "Install" icon in the address bar.\n• On Firefox: This browser does not support PWA installation. Use Chrome/Edge/Brave.\n• On Safari (Mac): Use the Share menu > "Add to Dock".\n\nAlternatively, you can always use the web version.');
   };
 
-  // Hide install button once app is installed
+  // Hide install button if app is already installed as standalone
+  if (isPWAInstalled()) {
+    installBtn.style.display = 'none';
+  } else {
+    installBtn.style.display = 'inline-flex'; // ensure visible
+  }
+
+  // After successful installation (when appinstalled event fires), hide button
   window.addEventListener('appinstalled', () => {
     installBtn.style.display = 'none';
     deferredPrompt = null;
+    // Also close iOS banner if open
+    iosBanner.style.display = 'none';
   });
 
-  // Show iOS banner if on iOS and not already installed as standalone
-  const isIOS = /iphone|ipad|ipod/.test(navigator.userAgent.toLowerCase());
-  const isStandalone = window.navigator.standalone === true;
-  if (isIOS && !isStandalone) {
-    // Show install button for iOS (will trigger the banner on click)
-    installBtn.style.display = 'block';
-  }
+  // Optional: On iOS, we might want to show the button but also show banner on click (already handled)
+  // No extra visibility toggles needed.
 </script>
 </body>
 </html>
