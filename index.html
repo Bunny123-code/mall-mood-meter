@@ -240,11 +240,28 @@
       margin-right: 6px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
+
+    .no-store-msg {
+      padding: 40px 20px;
+      text-align: center;
+    }
+    .no-store-msg .icon { font-size: 48px; margin-bottom: 16px; display: block; }
+    .no-store-msg h2 { font-size: 20px; font-weight: 800; color: var(--text); margin-bottom: 8px; }
+    .no-store-msg p { font-size: 14px; color: var(--muted); line-height: 1.6; }
   </style>
 </head>
 <body>
 <canvas id="confetti-canvas"></canvas>
 <div class="card" id="root-card">
+
+  <!-- No Store ID -->
+  <div id="no-store-view" class="no-store-msg" style="display:none;">
+    <span class="icon">🏪</span>
+    <h2>Invalid QR Code</h2>
+    <p>This QR code is not linked to any store. Please ask the store staff for assistance.</p>
+  </div>
+
+  <!-- Feedback Form -->
   <div id="form-view">
     <div class="mall-logo">⭐</div>
     <div class="store-name" id="store-label">Loading store…</div>
@@ -271,12 +288,15 @@
     <div class="error-msg" id="error-msg"></div>
     <button class="submit-btn" id="submit-btn" disabled>Submit Feedback</button>
   </div>
+
+  <!-- Thank You -->
   <div id="thankyou-view" class="thankyou" style="display:none;">
     <div class="big-emoji" id="ty-emoji">😊</div>
     <h2>Thank you!</h2>
     <p>Your feedback helps us improve your shopping experience.</p>
     <div class="ty-badge">✔ Response recorded</div>
   </div>
+
 </div>
 
 <script type="module">
@@ -289,8 +309,7 @@
     projectId: "mall-mood-meter",
     storageBucket: "mall-mood-meter.firebasestorage.app",
     messagingSenderId: "261002684409",
-    appId: "1:261002684409:web:4b2151b76f38b76b333f28",
-    measurementId: "G-J9L41YFQML"
+    appId: "1:261002684409:web:4b2151b76f38b76b333f28"
   };
 
   const app = initializeApp(firebaseConfig);
@@ -301,17 +320,19 @@
 
   let selectedMood = null;
 
-  const storeLabel = document.getElementById('store-label');
-  const btnHappy = document.getElementById('btn-happy');
-  const btnNeutral = document.getElementById('btn-neutral');
-  const btnUnhappy = document.getElementById('btn-unhappy');
-  const commentEl = document.getElementById('comment');
-  const submitBtn = document.getElementById('submit-btn');
-  const errorMsgDiv = document.getElementById('error-msg');
-  const formView = document.getElementById('form-view');
+  const storeLabel   = document.getElementById('store-label');
+  const btnHappy     = document.getElementById('btn-happy');
+  const btnNeutral   = document.getElementById('btn-neutral');
+  const btnUnhappy   = document.getElementById('btn-unhappy');
+  const commentEl    = document.getElementById('comment');
+  const submitBtn    = document.getElementById('submit-btn');
+  const errorMsgDiv  = document.getElementById('error-msg');
+  const formView     = document.getElementById('form-view');
+  const noStoreView  = document.getElementById('no-store-view');
   const thankyouView = document.getElementById('thankyou-view');
-  const tyEmoji = document.getElementById('ty-emoji');
+  const tyEmoji      = document.getElementById('ty-emoji');
 
+  // ── Helpers ────────────────────────────────────────────────
   function showError(msg) {
     errorMsgDiv.textContent = msg;
     errorMsgDiv.style.display = 'block';
@@ -319,25 +340,21 @@
   }
   function hideError() { errorMsgDiv.style.display = 'none'; }
 
-  // sessionStorage: one submission per tab (survives refresh, cleared when tab closed)
+  // sessionStorage key per store – survives refresh in same tab, gone when tab closes
+  const SESSION_KEY = storeId ? `submitted_${storeId}` : null;
+
   function hasAlreadySubmitted() {
-    const key = `submitted_${storeId}`;
-    return sessionStorage.getItem(key) === 'true';
+    return SESSION_KEY ? sessionStorage.getItem(SESSION_KEY) === 'true' : false;
   }
-
   function markSubmitted() {
-    const key = `submitted_${storeId}`;
-    sessionStorage.setItem(key, 'true');
+    if (SESSION_KEY) sessionStorage.setItem(SESSION_KEY, 'true');
   }
 
+  // ── Mood selection ──────────────────────────────────────────
   function selectMood(mood) {
-    if (hasAlreadySubmitted()) {
-      showError('You have already submitted feedback for this store in this tab.');
-      return;
-    }
     selectedMood = mood;
     [btnHappy, btnNeutral, btnUnhappy].forEach(btn => {
-      btn.classList.remove('selected-happy','selected-neutral','selected-unhappy');
+      btn.classList.remove('selected-happy', 'selected-neutral', 'selected-unhappy');
     });
     const map = { happy: btnHappy, neutral: btnNeutral, unhappy: btnUnhappy };
     map[mood].classList.add(`selected-${mood}`);
@@ -345,17 +362,15 @@
     hideError();
   }
 
-  btnHappy.addEventListener('click', () => selectMood('happy'));
+  btnHappy.addEventListener('click',   () => selectMood('happy'));
   btnNeutral.addEventListener('click', () => selectMood('neutral'));
   btnUnhappy.addEventListener('click', () => selectMood('unhappy'));
 
+  // ── Submit ──────────────────────────────────────────────────
   async function submitFeedback() {
+    if (!selectedMood) { showError('Please select a mood first.'); return; }
     if (hasAlreadySubmitted()) {
-      showError('You have already submitted feedback for this store in this tab.');
-      return;
-    }
-    if (!selectedMood) {
-      showError('Please select a mood first.');
+      showError('You have already submitted feedback in this session.');
       return;
     }
 
@@ -366,20 +381,14 @@
     try {
       await addDoc(collection(db, 'moods'), {
         storeId,
-        mood: selectedMood,
-        comment: comment || null,
+        mood:      selectedMood,
+        comment:   comment || null,
         timestamp: serverTimestamp(),
         sessionId: Math.random().toString(36).slice(2) + Date.now().toString(36)
       });
 
       markSubmitted();
-
-      const emojiMap = { happy:'😊', neutral:'😐', unhappy:'😠' };
-      tyEmoji.textContent = emojiMap[selectedMood] || '😊';
-      formView.style.display = 'none';
-      thankyouView.style.display = 'flex';
-
-      if (selectedMood === 'happy') launchConfetti();
+      showThankYou(selectedMood);
     } catch (err) {
       console.error('Submit error:', err);
       showError('Something went wrong. Please try again.');
@@ -390,21 +399,29 @@
 
   submitBtn.addEventListener('click', submitFeedback);
 
-  async function loadStoreName() {
+  function showThankYou(mood) {
+    const emojiMap = { happy: '😊', neutral: '😐', unhappy: '😠' };
+    tyEmoji.textContent = emojiMap[mood] || '😊';
+    formView.style.display    = 'none';
+    thankyouView.style.display = 'flex';
+    if (mood === 'happy') launchConfetti();
+  }
+
+  // ── Load store name ─────────────────────────────────────────
+  async function init() {
     if (!storeId) {
-      storeLabel.textContent = 'Invalid Store';
+      formView.style.display   = 'none';
+      noStoreView.style.display = 'block';
       return;
     }
-    storeLabel.textContent = storeId;
 
-    // If already submitted in this tab, show thank you immediately
+    // Already submitted in this tab session → show thank-you immediately
     if (hasAlreadySubmitted()) {
-      formView.style.display = 'none';
-      thankyouView.style.display = 'flex';
-      tyEmoji.textContent = '😊';
+      showThankYou('happy'); // generic emoji since we don't know the original mood
       return;
     }
 
+    storeLabel.textContent = storeId;
     try {
       const snap = await getDoc(doc(db, 'stores', storeId));
       if (snap.exists()) {
@@ -415,19 +432,14 @@
     }
   }
 
-  if (!storeId) {
-    storeLabel.textContent = 'Missing Store ID';
-    submitBtn.disabled = true;
-  } else {
-    loadStoreName();
-  }
+  init();
 </script>
 
 <script>
   function launchConfetti() {
     const canvas = document.getElementById('confetti-canvas');
     const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth;
+    canvas.width  = window.innerWidth;
     canvas.height = window.innerHeight;
     const COLORS = ['#4f46e5','#7c3aed','#16a34a','#d97706','#ec4899','#0ea5e9','#f59e0b'];
     const pieces = Array.from({ length: 140 }, () => ({
@@ -440,8 +452,7 @@
       tiltAngle: 0,
       tiltAngleInc: (Math.random() * 0.07) + 0.05
     }));
-    let frame = 0;
-    let animId;
+    let frame = 0, animId;
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       pieces.forEach(p => {
@@ -457,17 +468,11 @@
         p.y += (Math.cos(frame / 20 + p.d) + 1 + p.r / 2) * 1.6;
         p.x += Math.sin(frame / 40) * 1.2;
         p.tilt = Math.sin(p.tiltAngle - frame / 3) * 12;
-        if (p.y > canvas.height) {
-          p.x = Math.random() * canvas.width;
-          p.y = -10;
-        }
+        if (p.y > canvas.height) { p.x = Math.random() * canvas.width; p.y = -10; }
       });
       frame++;
       if (frame < 200) animId = requestAnimationFrame(draw);
-      else {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        cancelAnimationFrame(animId);
-      }
+      else { ctx.clearRect(0, 0, canvas.width, canvas.height); cancelAnimationFrame(animId); }
     }
     draw();
   }
