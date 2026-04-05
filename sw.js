@@ -1,32 +1,82 @@
-const CACHE_NAME = 'satisfaction-meter-v1';
-const urlsToCache = [
+const CACHE_NAME = 'satisfaction-meter-v2';
+
+const STATIC_URLS = [
   '/satisfaction-meter/dashboard.html',
-  '/satisfaction-meter/manifest.json'
+  '/satisfaction-meter/manifest.json',
+  '/satisfaction-meter/icons/icon-192.png',
+  '/satisfaction-meter/icons/icon-512.png'
 ];
 
-// Install – cache essential files
+// ── Install: pre-cache essential files ───────────────────────
 self.addEventListener('install', event => {
+  self.skipWaiting(); // activate new SW immediately
   event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(urlsToCache))
+    caches.open(CACHE_NAME).then(cache => {
+      // Cache each URL individually so one failure doesn't break the rest
+      return Promise.allSettled(
+        STATIC_URLS.map(url =>
+          cache.add(url).catch(err => console.warn('Failed to cache:', url, err))
+        )
+      );
+    })
   );
 });
 
-// Fetch – serve from cache if offline, fall back to network
-self.addEventListener('fetch', event => {
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => response || fetch(event.request))
-      .catch(() => caches.match('/satisfaction-meter/dashboard.html'))
-  );
-});
-
-// Activate – remove old caches
+// ── Activate: remove stale caches ────────────────────────────
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(names =>
       Promise.all(
-        names.map(name => { if (name !== CACHE_NAME) return caches.delete(name); })
+        names
+          .filter(name => name !== CACHE_NAME)
+          .map(name => caches.delete(name))
       )
-    )
+    ).then(() => self.clients.claim()) // take control immediately
+  );
+});
+
+// ── Fetch: network-first for navigation, cache-fallback otherwise
+self.addEventListener('fetch', event => {
+  const { request } = event;
+  const url = new URL(request.url);
+
+  // Only handle same-origin or GitHub Pages requests
+  if (url.origin !== location.origin &&
+      !url.hostname.endsWith('github.io')) {
+    return; // let the browser handle external requests normally
+  }
+
+  // For HTML navigation requests: network-first, cache fallback
+  if (request.mode === 'navigate' || request.destination === 'document') {
+    event.respondWith(
+      fetch(request)
+        .then(response => {
+          // Cache a fresh copy
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
+          }
+          return response;
+        })
+        .catch(() =>
+          caches.match(request)
+            .then(cached => cached || caches.match('/satisfaction-meter/dashboard.html'))
+        )
+    );
+    return;
+  }
+
+  // For static assets: cache-first
+  event.respondWith(
+    caches.match(request).then(cached => {
+      if (cached) return cached;
+      return fetch(request).then(response => {
+        if (response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(request, clone));
+        }
+        return response;
+      });
+    })
   );
 });
